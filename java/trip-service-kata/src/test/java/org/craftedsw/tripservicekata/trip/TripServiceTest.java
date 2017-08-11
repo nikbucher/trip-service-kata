@@ -1,6 +1,7 @@
 package org.craftedsw.tripservicekata.trip;
 
 import org.craftedsw.tripservicekata.exception.UserNotLoggedInException;
+import org.craftedsw.tripservicekata.user.LoggedInUserProvider;
 import org.craftedsw.tripservicekata.user.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,9 +22,8 @@ public class TripServiceTest {
 
     private static final Trip TRIP_TO_STGALLEN = new Trip();
     private static final Trip TRIP_TO_BERN = new Trip();
-
-    private final TripService sut = new TestableTripService();
     private User loggedInUser;
+    private final TripService sut = new TestableTripService(() -> loggedInUser);
 
     @Before
     public void setUp() throws Exception {
@@ -66,9 +66,8 @@ public class TripServiceTest {
 
     private class TestableTripService extends TripService {
 
-        @Override
-        protected User getLoggedInUser() {
-            return loggedInUser;
+        private TestableTripService(LoggedInUserProvider loggedInUserProvider) {
+            super(loggedInUserProvider);
         }
 
         @Override
