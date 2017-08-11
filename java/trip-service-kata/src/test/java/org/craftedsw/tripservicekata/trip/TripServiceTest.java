@@ -2,88 +2,78 @@ package org.craftedsw.tripservicekata.trip;
 
 import org.craftedsw.tripservicekata.exception.UserNotLoggedInException;
 import org.craftedsw.tripservicekata.user.User;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import static org.craftedsw.tripservicekata.trip.UserBuilder.anUser;
+import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class TripServiceTest {
 
-    private static final User USER_WITHOUT_FRIENDS = new User();
-    private static final User NO_USER = null;
-    private static final User NOT_LOGGED_IN_USER = null;
-    private static final User LOGGED_IN_USER = new User();
-    private static final User FRIEND_OF_LOGGED_IN_USER = new User();
+    private static final User UNUSED_USER = null;
+    private static final User GUEST = null;
+    private static final User REGISTERED_USER = new User();
+    private static final User ANOTHER_USER = new User();
+
     private static final Trip TRIP_TO_STGALLEN = new Trip();
+    private static final Trip TRIP_TO_BERN = new Trip();
+
+    private final TripService sut = new TestableTripService();
+    private User loggedInUser;
+
+    @Before
+    public void setUp() throws Exception {
+        loggedInUser = REGISTERED_USER;
+    }
 
     @Test(expected = UserNotLoggedInException.class)
     public void should_throw_exception_if_user_not_logged_in() {
         // given:
-        final TripService sut = new TripServiceWithNotLoggedInUser();
+        loggedInUser = GUEST;
         // when:
-        sut.getTripsByUser(NO_USER);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void should_throw_exception_if_user_is_logged_no_user_is_passed() {
-        // given:
-        final TripService sut = new TripServiceWithLoggedInUser();
-        // when:
-        sut.getTripsByUser(NO_USER);
+        sut.getTripsByUser(UNUSED_USER);
     }
 
     @Test
-    public void should_get_empty_list_if_LoggedInUser_is_no_friend_of_givenUser() {
+    public void should_get_any_trips_if_users_are_not_friends() {
         // given:
-        final TripService sut = new TripServiceWithLoggedInUser();
+        final User user = anUser()
+                .withFriends(ANOTHER_USER)
+                .withTrips(TRIP_TO_STGALLEN)
+                .build();
         // when:
-        final List<Trip> result = sut.getTripsByUser(USER_WITHOUT_FRIENDS);
+        final List<Trip> result = sut.getTripsByUser(user);
         //then:
         assertEquals(result.size(), 0);
     }
 
     @Test
-    public void should_get_trip_list_of_fried_of_logged_in_user() {
+    public void should_get_trip_list_of_fried_if_users_are_friends() {
         // given:
-        FRIEND_OF_LOGGED_IN_USER.addFriend(new User());
-        FRIEND_OF_LOGGED_IN_USER.addFriend(LOGGED_IN_USER);
-        FRIEND_OF_LOGGED_IN_USER.addTrip(TRIP_TO_STGALLEN);
-
-        final TripService sut = new TripServiceWithLoggedInUserHavingFriend();
+        final User friendOfRegisteredUser = anUser()
+                .withFriends(ANOTHER_USER, REGISTERED_USER)
+                .withTrips(TRIP_TO_STGALLEN, TRIP_TO_BERN)
+                .build();
         // when:
-        final List<Trip> result = sut.getTripsByUser(FRIEND_OF_LOGGED_IN_USER);
+        final List<Trip> result = sut.getTripsByUser(friendOfRegisteredUser);
         //then:
-        assertThat(result.size(), is(1));
-        assertThat(result.get(0), equalTo(TRIP_TO_STGALLEN));
+        assertThat(result, hasItems(TRIP_TO_STGALLEN, TRIP_TO_BERN));
     }
 
-    private static class TripServiceWithNotLoggedInUser extends TripService {
-        @Override
-        protected User getLoggedInUser() {
-            return NOT_LOGGED_IN_USER;
-        }
-    }
+    private class TestableTripService extends TripService {
 
-    private static class TripServiceWithLoggedInUser extends TripService {
         @Override
         protected User getLoggedInUser() {
-            return LOGGED_IN_USER;
-        }
-    }
-
-    private static class TripServiceWithLoggedInUserHavingFriend extends TripService {
-        @Override
-        protected User getLoggedInUser() {
-            return LOGGED_IN_USER;
+            return loggedInUser;
         }
 
         @Override
         protected List<Trip> getTripsOfFriendOfLoggedUser(User user) {
-            return FRIEND_OF_LOGGED_IN_USER.trips();
+            return user.trips();
         }
     }
 }
