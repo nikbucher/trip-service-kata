@@ -11,19 +11,22 @@ import static java.util.Collections.emptyList;
 public class TripService {
 
     private static final List<Trip> NO_TRIPS = emptyList();
-    private final LoggedInUserProvider loggedInUserProvider;
 
-    public TripService(LoggedInUserProvider loggedInUserProvider) {
+    private final LoggedInUserProvider loggedInUserProvider;
+    private final TripRepository tripRepository;
+
+    public TripService(LoggedInUserProvider loggedInUserProvider, TripRepository tripRepository) {
         this.loggedInUserProvider = loggedInUserProvider;
+        this.tripRepository = tripRepository;
     }
 
-    public List<Trip> getTripsByUser(User user) throws UserNotLoggedInException {
+    public List<Trip> getFriendTrips(User user) throws UserNotLoggedInException {
         if (getLoggedInUser() == null) {
             throw new UserNotLoggedInException();
         }
 
         return user.isFriendOf(getLoggedInUser())
-                ? getTripsOfFriendOfLoggedUser(user)
+                ? tripsByUser(user)
                 : NO_TRIPS;
     }
 
@@ -31,8 +34,8 @@ public class TripService {
         return loggedInUserProvider.getUser();
     }
 
-    protected List<Trip> getTripsOfFriendOfLoggedUser(User user) {
-        return TripDAO.findTripsByUser(user);
+    private List<Trip> tripsByUser(User user) {
+        return tripRepository.findByUser(user);
     }
 
 }
